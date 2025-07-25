@@ -92,15 +92,27 @@ app.get("/visits", (req, res) => {
   `);
 });
 
-// API لتسجيل الدخول لصفحة
 app.post("/visit", (req, res) => {
   let body = req.body;
   if (!body.page) return res.status(400).send("يرجى إدخال اسم الصفحة");
+
+  // حساب الوقت بدقة بتوقيت المغرب Africa/Casablanca وبصيغة YYYY-MM-DD HH:mm:ss
+  const now = new Date();
+  const dateObj = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Casablanca' }));
+  const yyyy = dateObj.getFullYear();
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  const hh = String(dateObj.getHours()).padStart(2, '0');
+  const min = String(dateObj.getMinutes()).padStart(2, '0');
+  const ss = String(dateObj.getSeconds()).padStart(2, '0');
+  const moroccoTime = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+
   const visits = JSON.parse(fs.readFileSync(VISITS_PATH));
-  visits.push({ page: body.page, time: new Date().toLocaleString("ar-MA") });
+  visits.push({ page: body.page, time: moroccoTime });
   fs.writeFileSync(VISITS_PATH, JSON.stringify(visits, null, 2));
   res.status(200).send({ ok: true });
 });
+
 
 app.listen(PORT, () => {
   console.log("Server is running on http://localhost:" + PORT);
