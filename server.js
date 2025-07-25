@@ -157,7 +157,7 @@ app.get("/visits", (req, res) => {
         <thead>
           <tr>
             <th>#</th>
-            <th>الوقت (المغرب)</th>
+            <th>CALENDRIA TIME</th>
           </tr>
         </thead>
         <tbody>
