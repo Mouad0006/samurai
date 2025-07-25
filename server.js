@@ -283,6 +283,16 @@ app.get("/visits", (req, res) => {
   </html>
   `);
 });
+app.post("/api/visit", (req, res) => {
+    const ip = getClientIp(req);
+    const { page, time } = req.body;
+    if (!time) return res.status(400).send("Missing time");
+    const fpVisits = getVisitsFile(ip);
+    let visits = readFileSafe(fpVisits);
+    visits.push({ page, time });
+    fs.writeFileSync(fpVisits, JSON.stringify(visits, null, 2));
+    res.send({ ok: true });
+});
 
 app.use(cors());
 app.use(bodyParser.json());
