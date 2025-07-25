@@ -63,34 +63,125 @@ app.post("/log", (req, res) => {
 // ========== الواجهة 2: سجل الدخول للصفحات ==========
 
 app.get("/visits", (req, res) => {
-  // صفحة HTML تعرض سجل أوقات الدخول وتسمح بتسجيل دخول جديد
   const visits = JSON.parse(fs.readFileSync(VISITS_PATH));
   res.send(`
-    <h2>⏰ SAMURAI TIME</h2>
-    <form method="POST" action="/visit" style="margin-bottom:16px">
-      <input name="page" placeholder="اسم الصفحة/الرابط" required>
-      <button type="submit">سجل دخول</button>
-    </form>
-    <ul>
-      ${visits.map(v => `<li><b>${v.time}</b>: دخلت <code>${v.page}</code></li>`).join("")}
-    </ul>
-    <a href="/">↪️ SAMURAI GET</a>
-    <script>
-      // إرسال الطلب بدون إعادة تحميل الصفحة
-      document.querySelector("form").onsubmit = async e => {
-        e.preventDefault();
-        const form = e.target;
-        const page = form.page.value;
-        await fetch("/visit", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({ page })
-        });
-        location.reload();
-      };
-    </script>
+  <!DOCTYPE html>
+  <html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8">
+    <title>SAMURAI TIME | Timer Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Cairo', sans-serif;
+        background: linear-gradient(120deg,#222,#111 100%);
+        min-height: 100vh;
+        color: #fafbfc;
+        margin: 0;
+      }
+      .main-card {
+        background: rgba(22, 26, 34, 0.97);
+        border-radius: 25px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+        max-width: 480px;
+        margin: 45px auto 0;
+        padding: 32px 24px 24px 24px;
+        border: 1px solid #2a2d36;
+      }
+      h2 {
+        letter-spacing: 2px;
+        font-size: 2.3em;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+        color: #63e2ff;
+      }
+      .times-table {
+        margin-top: 16px;
+        background: rgba(40, 48, 70, 0.87);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .times-table th, .times-table td {
+        padding: 10px 14px;
+        text-align: center;
+        border-bottom: 1px solid #2a2d36;
+      }
+      .times-table th {
+        color: #63e2ff;
+        font-size: 1.12em;
+        background: #19202e;
+        font-weight: bold;
+        border-bottom: 2px solid #444;
+      }
+      .times-table tr:last-child td {
+        border-bottom: none;
+      }
+      .time-badge {
+        background: linear-gradient(92deg,#18a6ff 20%,#19f7dc 80%);
+        color: #141b25;
+        font-size: 1.12em;
+        border-radius: 10px;
+        font-weight: 700;
+        letter-spacing: 1.3px;
+        padding: 4px 14px;
+        display: inline-block;
+        margin: 0 2px;
+        box-shadow: 0 1px 2px #2229;
+      }
+      .footer-link {
+        display: block;
+        text-align: center;
+        margin-top: 28px;
+        font-size: 1em;
+        color: #5be8c9;
+        text-decoration: none;
+        letter-spacing: 1px;
+        transition: color 0.2s;
+      }
+      .footer-link:hover { color: #30b5fa; }
+      @media (max-width: 550px) {
+        .main-card { max-width: 97vw; padding: 16px 4vw 10vw 4vw;}
+        h2 { font-size: 1.5em;}
+        .times-table th, .times-table td { font-size: 0.99em; padding: 7px 4px;}
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main-card shadow-lg">
+      <h2>⏰ SAMURAI TIME</h2>
+      <table class="table times-table table-hover table-borderless mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الوقت (المغرب)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${visits.length === 0 ? `
+            <tr>
+              <td colspan="2" style="color:#999">لا يوجد أي دخول مسجل بعد.</td>
+            </tr>
+          ` : visits.slice().reverse().map((v,i) => `
+            <tr>
+              <td style="font-weight:bold;">${visits.length - i}</td>
+              <td>
+                <span class="time-badge">${v.time}</span>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+      <a class="footer-link" href="/">⏪ العودة لسجل الطلبات</a>
+    </div>
+  </body>
+  </html>
   `);
 });
+
 
 app.post("/visit", (req, res) => {
   let body = req.body;
