@@ -161,18 +161,41 @@ app.get("/visits", (req, res) => {
           </tr>
         </thead>
         <tbody>
-          ${visits.length === 0 ? `
+          ${
+            visits.length === 0 ? `
             <tr>
               <td colspan="2" style="color:#999">لا يوجد أي دخول مسجل بعد.</td>
             </tr>
-          ` : visits.slice().reverse().map((v,i) => `
-            <tr>
-              <td style="font-weight:bold;">${visits.length - i}</td>
-              <td>
-                <span class="time-badge">${v.time}</span>
-              </td>
-            </tr>
-          `).join("")}
+            ` : visits.slice().reverse().map((v,i) => {
+              // طرح ثانيتين من الوقت المسجل (يدعم ms أو بدونها)
+              let showTime = v.time;
+              try {
+                let timeStr = v.time;
+                if (timeStr.includes('.')) timeStr = timeStr.split('.')[0]; // إزالة ms إن وجدت
+                let dt = timeStr.replace(' ', 'T');
+                let dateObj = new Date(dt);
+                if (!isNaN(dateObj)) {
+                  dateObj.setSeconds(dateObj.getSeconds() - 2);
+                  // إعادة بناء النص بالتنسيق السابق
+                  const yyyy = dateObj.getFullYear();
+                  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                  const dd = String(dateObj.getDate()).padStart(2, '0');
+                  const hh = String(dateObj.getHours()).padStart(2, '0');
+                  const min = String(dateObj.getMinutes()).padStart(2, '0');
+                  const ss = String(dateObj.getSeconds()).padStart(2, '0');
+                  showTime = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+                }
+              } catch(e){}
+              return `
+                <tr>
+                  <td style="font-weight:bold;">${visits.length - i}</td>
+                  <td>
+                    <span class="time-badge">${showTime}</span>
+                  </td>
+                </tr>
+              `;
+            }).join("")
+          }
         </tbody>
       </table>
       <a class="footer-link" href="/">⏪ العودة لسجل الطلبات</a>
@@ -181,6 +204,7 @@ app.get("/visits", (req, res) => {
   </html>
   `);
 });
+
 
 
 app.post("/visit", (req, res) => {
