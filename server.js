@@ -63,7 +63,7 @@ app.post("/api/slot-confirm", (req, res) => {
   res.status(404).send("Pending slot request not found");
 });
 
-// صفحة عرض الطلبات المؤكدة (Samurai GET) — فقط لآيبي المستخدم
+// صفحة عرض الطلبات المؤكدة (Samurai GET) — فقط لآيبي المستخدم + زر للتايمر
 app.get("/", (req, res) => {
   const ip = getClientIp(req);
   const confirmed = readFileSafe(getConfirmedFile(ip));
@@ -78,13 +78,16 @@ app.get("/", (req, res) => {
       <style>
         body{background:#181d22;color:#fff;}
         .main-card{background:rgba(22,26,34,0.97);border-radius:25px;box-shadow:0 8px 32px 0 rgba(31,38,135,.25);max-width:520px;margin:50px auto 0;padding:32px 20px;}
-        h2{letter-spacing:2px;font-size:2em;font-weight:bold;text-align:center;margin-bottom:24px;color:#63e2ff;}
+        h2{letter-spacing:2px;font-size:2em;font-weight:bold;text-align:center;margin-bottom:18px;color:#63e2ff;}
         .table{border-radius:18px;overflow:hidden;}
+        .btn-info {background:#63e2ff;border:none;color:#161a22;}
+        .btn-info:hover {background:#18a6ff;color:#fff;}
       </style>
     </head>
     <body>
       <div class="main-card shadow-lg">
         <h2>📒 Samurai GET</h2>
+        <a href="/visits" class="btn btn-info mb-3" style="width:100%;font-weight:bold;letter-spacing:1.5px;">⏰ الانتقال إلى صفحة التايمر</a>
         <table class="table table-dark table-bordered table-hover text-center align-middle mb-0">
           <thead>
             <tr>
@@ -115,9 +118,8 @@ app.get("/", (req, res) => {
   `);
 });
 
-// (اختياري) صفحة TIMER (samurai time) — تقدر تعدلها بنفس منطق الآيبي لو تريد ربطها بالمستخدم
+// صفحة التايمر + زر العودة
 app.get("/visits", (req, res) => {
-  // هذا مثال قديم للـtimer — يمكنك ربطه مثل جدول confirmed لكل IP إذا رغبت
   res.send(`
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -129,13 +131,16 @@ app.get("/visits", (req, res) => {
       <style>
         body{background:#181d22;color:#fff;}
         .main-card{background:rgba(22,26,34,0.97);border-radius:25px;box-shadow:0 8px 32px 0 rgba(31,38,135,.25);max-width:480px;margin:50px auto 0;padding:32px 20px;}
-        h2{letter-spacing:2px;font-size:2em;font-weight:bold;text-align:center;margin-bottom:24px;color:#63e2ff;}
-        .table{border-radius:18px;overflow:hidden;}
+        h2{letter-spacing:2px;font-size:2em;font-weight:bold;text-align:center;margin-bottom:18px;color:#63e2ff;}
+        .btn-outline-info {border:2px solid #63e2ff;color:#63e2ff;font-weight:bold;}
+        .btn-outline-info:hover {background:#63e2ff;color:#161a22;}
+        .alert {margin-top:30px;}
       </style>
     </head>
     <body>
       <div class="main-card shadow-lg">
         <h2>⏰ SAMURAI TIME</h2>
+        <a href="/" class="btn btn-outline-info mb-3" style="width:100%;font-weight:bold;">🔙 العودة إلى الطلبات</a>
         <div class="alert alert-info text-center">
           هذه الصفحة للاستخدام المستقبلي أو تطوير إضافي حسب حاجتك<br>
           (يمكنك ربطها بسجلات الآيبي مثل صفحة GET)
