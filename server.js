@@ -7,7 +7,6 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// كل IP له ملفات مستقلة
 const DATA_DIR = path.join(__dirname, "slot_data");
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
@@ -33,28 +32,30 @@ function readFileSafe(fp) {
   return JSON.parse(fs.readFileSync(fp));
 }
 
-// API لتسجيل ثانية إرسال SlotSelection.js (يخزن في pending)
+// ========== API لتسجيل ثانية إرسال SlotSelection.js (مراقبة الشبكة) ==========
 app.post("/api/slot-request", (req, res) => {
   const ip = getClientIp(req);
   const { data, time } = req.body;
   if (!data || !time) return res.status(400).send("Missing data/time");
 
-  // سجل أيضاً في visits لعرض التوقيت في صفحة timer
+  // تسجيل في pending requests (في انتظار التأكيد)
+  const fpPending = getPendingFile(ip);
+  let pending = readFileSafe(fpPending);
+  // امنع التكرار (نفس data لنفس الجهاز)
+  if (!pending.find(e => e.data === data)) {
+    pending.push({ data, time });
+    fs.writeFileSync(fpPending, JSON.stringify(pending, null, 2));
+  }
+  // أيضاً سجل time في visits للتايمر
   const fpVisits = getVisitsFile(ip);
   let visits = readFileSafe(fpVisits);
   visits.push({ time });
   fs.writeFileSync(fpVisits, JSON.stringify(visits, null, 2));
 
-  // سجل الطلب في pending
-  const fpPending = getPendingFile(ip);
-  let pending = readFileSafe(fpPending);
-  pending.push({ data, time });
-  fs.writeFileSync(fpPending, JSON.stringify(pending, null, 2));
-
   res.send({ ok: true });
 });
 
-// API لتأكيد ظهور ApplicantSelection.js?data=... 200
+// ========== API لتأكيد الطلب عند ظهور ApplicantSelection/.js (status 200) ==========
 app.post("/api/slot-confirm", (req, res) => {
   const ip = getClientIp(req);
   const { data } = req.body;
@@ -64,6 +65,7 @@ app.post("/api/slot-confirm", (req, res) => {
   let pending = readFileSafe(fpPending);
   let confirmed = readFileSafe(fpConfirmed);
 
+  // ابحث عن التوقيت المحفوظ لهذا data
   const idx = pending.findIndex(r => r.data === data);
   if (idx !== -1) {
     confirmed.push(pending[idx]);
@@ -75,7 +77,7 @@ app.post("/api/slot-confirm", (req, res) => {
   res.status(404).send("Pending slot request not found");
 });
 
-// صفحة الطلبات المؤكدة (Samurai GET) مع زر للتايمر
+// ========== واجهة الطلبات المؤكدة (GET) ==========
 app.get("/", (req, res) => {
   const ip = getClientIp(req);
   const confirmed = readFileSafe(getConfirmedFile(ip));
@@ -130,7 +132,7 @@ app.get("/", (req, res) => {
   `);
 });
 
-// صفحة التايمر (وظائف كاملة: ترتيب من الأصغر، طرح ثانيتين، ستايل، زر العودة)
+// ========== صفحة التايمر (Timer) ===============
 app.get("/visits", (req, res) => {
   const ip = getClientIp(req);
   const visits = readFileSafe(getVisitsFile(ip));
@@ -229,7 +231,7 @@ app.get("/visits", (req, res) => {
         <thead>
           <tr>
             <th>#</th>
-            <th>CALENDRIA TIME</th>
+            <th>الوقت (المغرب -٢ ثواني)</th>
           </tr>
         </thead>
         <tbody>
@@ -239,29 +241,25 @@ app.get("/visits", (req, res) => {
               <td colspan="2" style="color:#999">لا يوجد أي دخول مسجل بعد.</td>
             </tr>
             ` :
-            // فرز الأوقات تصاعدياً (من الأصغر للأكبر)
             visits
               .slice()
               .sort((a, b) => {
-                // دعم تنسيقات بها ms أو بدونها
                 let at = a.time.split('.')[0].replace(' ', 'T');
                 let bt = b.time.split('.')[0].replace(' ', 'T');
                 return new Date(at) - new Date(bt);
               })
               .map((v, i) => {
-                // طرح ثانيتين من الوقت المعروض
                 let showTime = v.time;
                 try {
                   let timeStr = v.time;
-                  if (timeStr.includes('.')) timeStr = timeStr.split('.')[0]; // إزالة ms إن وجدت
+                  if (timeStr.includes('.')) timeStr = timeStr.split('.')[0];
                   let dt = timeStr.replace(' ', 'T');
                   let dateObj = new Date(dt);
                   if (!isNaN(dateObj)) {
                     dateObj.setSeconds(dateObj.getSeconds() - 2);
-                    // إعادة بناء النص بالتنسيق السابق
                     const yyyy = dateObj.getFullYear();
                     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    const dd = dateObj.getDate().toString().padStart(2, '0');
+                    const dd = String(dateObj.getDate()).padStart(2, '0');
                     const hh = String(dateObj.getHours()).padStart(2, '0');
                     const min = String(dateObj.getMinutes()).padStart(2, '0');
                     const ss = String(dateObj.getSeconds()).padStart(2, '0');
